@@ -5,23 +5,31 @@ import requests
 import json
 
 def getAtm(lat,lng,rad,apiKey):
+
 	url = 'http://api.reimaginebanking.com/atms?lat={}&lng={}&rad={}&key={}'.format(lat,lng,rad,apiKey)
+	#print url
 	response = requests.get(url,headers={'content-type':'application/json'})
-	if response.status_code == 200:
-		print('atms retrieved')
-	else:
-		print(response.status_code)
 
-	data = json.loads(response.content)
-	dataLength = len(data['data'])
-	if dataLength > 0:
-		money = data['data'][0]['amount_left']	
+	resp_json = json.loads(response.content)
+	#print resp_json
 
-	return money
+	if 'next' in resp_json['paging']: 
+		while 'next' in resp_json['paging']:
+			nextpage = resp_json['paging']['next']
+			url = 'http://api.reimaginebanking.com{}'.format(nextpage)
+			response = requests.get(url,headers={'content-type':'application/json'})
+			resp_json = json.loads(response.content)
+			print(resp_json['paging'])
+		print "All atms retrieved"
+	else: 
+		print "no pagination required"
+		print "All atms retrieved"
 
+	
+
+#Program starting point
 customerId = '599dc3bca73e4942cdafdb22'
 apiKey = '95c2b61f4082919257c091e7429b2047'
-
 url = 'http://api.reimaginebanking.com/customers?key={}'.format(apiKey)
 payload = {
   "first_name": "jane",
@@ -43,8 +51,9 @@ response = requests.post(
 
 if response.status_code == 201:
 	print('new customer added')
-mymoney = getAtm(38.9283,-77.1753,1,apiKey)
-print(mymoney)
+
+#Get atms for given coordinates
+getAtm(38.9283,-77.1753,1,apiKey)
 
 # create new savings account
 url = 'http://api.reimaginebanking.com/customers/{}/accounts?key={}'.format(customerId,apiKey)
@@ -96,9 +105,6 @@ response = requests.get(
 
 if response.status_code == 200:
 	print('purchase check successful')
-
-#check atm 
-getAtm(38.9283,-77.1753,1,apiKey)
 
 #create deposit
 url = 'http://api.reimaginebanking.com/accounts/{}/deposits?key={}'.format(account_id,apiKey)
